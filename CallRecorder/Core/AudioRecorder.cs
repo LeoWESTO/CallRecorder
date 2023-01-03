@@ -1,5 +1,6 @@
 ﻿using NAudio.Wave;
 using System;
+using System.Reflection;
 
 namespace CallRecorder.Core
 {
@@ -7,15 +8,18 @@ namespace CallRecorder.Core
     {
         private WaveInEvent micSource = null;
         private WaveFileWriter micFile = null;
-        public readonly string TempMicFilename = "mic.wav";
+        public readonly string TempMicFilename;
 
         private WasapiLoopbackCapture sysSourse;
         private WaveFileWriter sysFile;
-        public readonly string TempSysFilename = "sys.wav";
+        public readonly string TempSysFilename;
 
-        public readonly string TempAudioFilename = "audio.wav";
-        public AudioRecorder()
+        public readonly string TempAudioFilename;
+        public AudioRecorder(DateTime id)
         {
+            TempMicFilename = $"mic_{id.Ticks}.wav";
+            TempSysFilename = $"sys_{id.Ticks}.wav";
+            TempAudioFilename = $"audio_{id.Ticks}.wav";
         }
         public void Start()
         {
@@ -32,21 +36,24 @@ namespace CallRecorder.Core
                 micFile = new WaveFileWriter(TempMicFilename, micSource.WaveFormat);
                 sysFile = new WaveFileWriter(TempSysFilename, sysSourse.WaveFormat);
 
-                Utils.Log("Захват аудио");
+                Utils.Log("Захват системного звука");
                 sysSourse.StartRecording();
+                Utils.Log("Захват микрофона");
                 micSource.StartRecording();
                 
             }
-            catch(Exception ex) { Utils.Log(ex.Message); }
+            catch(Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
         }
         public void Stop()
         {
             try
             {
+                Utils.Log("Завершение захвата системного звука");
                 sysSourse?.StopRecording();
+                Utils.Log("Завершение захвата микрофона");
                 micSource?.StopRecording();
             }
-            catch(Exception ex) { Utils.Log(ex.Message); }
+            catch(Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
         }
         private void SysSourse_DataAvailable(object sender, WaveInEventArgs e)
         {

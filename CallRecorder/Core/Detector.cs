@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -41,7 +42,7 @@ namespace CallRecorder.Core
                         if (!micInUse && isRecordWorking)
                         {
                             //был включен, а теперь выключен
-                            if ((DateTime.Now - RecordStartTime).TotalSeconds > 5) //защита от "миганий" камеры в начале записи
+                            if ((DateTime.Now - RecordStartTime).TotalSeconds > 5) //защита от "миганий"
                             {
                                 RecordStopTime = DateTime.Now;
                                 isRecordWorking = false;
@@ -51,7 +52,7 @@ namespace CallRecorder.Core
                         Thread.Sleep(100);
                     }
                 }
-                catch(Exception ex) { Utils.Log(ex.Message); }
+                catch(Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
             });
         }
         private static bool IsWebCamInUse()
@@ -76,7 +77,7 @@ namespace CallRecorder.Core
                     }
                 }
             }
-            catch(Exception ex) { Utils.Log(ex.Message); }
+            catch(Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
             
             return false;
         }
@@ -102,7 +103,7 @@ namespace CallRecorder.Core
                     }
                 }
             }
-            catch (Exception ex) { Utils.Log(ex.Message); }
+            catch (Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
 
             return false;
         }

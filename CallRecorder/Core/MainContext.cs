@@ -2,8 +2,10 @@
 using CallRecorder.Properties;
 using NAudio.Wave;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using File = System.IO.File;
@@ -14,7 +16,7 @@ namespace CallRecorder.Core
     public class MainContext : ApplicationContext
     {
         private NotifyIcon trayIcon;
-        private Recorder recorder;
+        private Queue<Recorder> recorders;
         private Detector detector;
         private Timer timer;
 
@@ -38,8 +40,8 @@ namespace CallRecorder.Core
             timer.AutoReset = true;
             timer.Start();
 
-            //записыватель
-            recorder = new Recorder();
+            //очередь записей
+            recorders = new Queue<Recorder>();
 
             //детектор
             detector = new Detector();
@@ -56,36 +58,41 @@ namespace CallRecorder.Core
         private void Detector_RecordStarted()
         {
             Utils.Log("Начало записи");
-            Utils.DeleteTempFiles();
 
-            recorder.StartRecord();
+            var record = new Recorder(detector.RecordStartTime);
+            recorders.Enqueue(record);
+            record.StartRecord();
         }
         private void Detector_RecordStoped()
         {
             Utils.Log("Конец записи");
 
-            recorder.StopRecord();
-
-            var minDur = Convert.ToInt32(File.ReadAllText("time_filter.txt"));
-            if ((detector.RecordStopTime - detector.RecordStartTime).TotalSeconds > minDur)
+            var record = recorders.Dequeue();
+            if (record != null)
             {
-                var sr = new SaveRecordForm();
-                do { sr.ShowDialog(); } 
-                while (string.IsNullOrEmpty(sr.Id));
+                record.StopRecord();
 
-                recorder.MergeRecord();
-                DeleteOldRecords();
+                var minDur = Convert.ToInt32(File.ReadAllText("time_filter.txt"));
+                if ((detector.RecordStopTime - detector.RecordStartTime).TotalSeconds > minDur)
+                {
+                    var sr = new SaveRecordForm();
+                    do { sr.ShowDialog(); }
+                    while (string.IsNullOrEmpty(sr.Id));
 
-                var recordPath = SaveRecordLocal(sr.Id);
-                if (!string.IsNullOrEmpty(recordPath))
-                    CloudManager.UploadFile(new FileInfo(recordPath));
+                    record.MergeRecord();
+                    DeleteOldRecords();
+
+                    var recordPath = SaveRecordLocal(record, sr.Id);
+                    if (!string.IsNullOrEmpty(recordPath))
+                        CloudManager.UploadFile(new FileInfo(recordPath));
+                }
+                else
+                {
+                    Utils.Log($"Запись короче минимальной длины в {minDur} сек!");
+                }
+
+                record.DeleteTempFiles();
             }
-            else
-            {
-                Utils.Log($"Запись короче минимальной длины в {minDur} сек!");
-            }
-
-            Utils.DeleteTempFiles();
         }
         private void DeleteOldRecords()
         {
@@ -97,19 +104,19 @@ namespace CallRecorder.Core
                 }
             }
         }
-        private string SaveRecordLocal(string id)
+        private string SaveRecordLocal(Recorder record, string id)
         {
             var recordPath = string.Empty;
             try
             {
-                var dur = new AudioFileReader("record.mp4").TotalTime;
+                var dur = new AudioFileReader(record.TempRecordFilename).TotalTime;
                 recordPath = Path.Combine("Records", $"{DateTime.Now.ToString("dd-MM-yyyy")}_{(int)dur.TotalSeconds}_{id}.mp4");
                 File.Copy(
-                    "record.mp4",
+                    record.TempRecordFilename,
                     recordPath, 
                     true);
             }
-            catch (Exception ex) { Utils.Log(ex.Message); }
+            catch (Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
 
             return recordPath;
         }

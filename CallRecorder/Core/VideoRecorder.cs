@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Reflection;
 
 namespace CallRecorder.Core
 {
     public class VideoRecorder
     {
         private Process ffmpeg;
-        public readonly string TempVideoFilemane = "video.mp4";
-        public VideoRecorder()
+        public readonly string TempVideoFilemane;
+        public VideoRecorder(DateTime id)
         {
-
+            TempVideoFilemane = $"video_{id.Ticks}.mp4";
         }
         public void Start()
         {
@@ -27,7 +28,7 @@ namespace CallRecorder.Core
                 Utils.Log("Захват видео");
                 ffmpeg = Process.Start(startInfo);
             }
-            catch(Exception ex) { Utils.Log(ex.Message); }
+            catch(Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
         }
         public void Stop()
         {
@@ -37,7 +38,7 @@ namespace CallRecorder.Core
                 ffmpeg.StandardInput.WriteLine("q");
                 while (!ffmpeg.HasExited) ;
             }
-            catch(Exception ex) { Utils.Log(ex.Message); }
+            catch(Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
         }
     }
 }

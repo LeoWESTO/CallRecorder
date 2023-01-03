@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace CallRecorder.Core
@@ -8,10 +10,14 @@ namespace CallRecorder.Core
     {
         private VideoRecorder videoRecorder;
         private AudioRecorder audioRecorder;
-        public Recorder()
+
+        public readonly string TempRecordFilename;
+        public Recorder(DateTime id)
         {
-            videoRecorder = new VideoRecorder();
-            audioRecorder = new AudioRecorder();
+            videoRecorder = new VideoRecorder(id);
+            audioRecorder = new AudioRecorder(id);
+
+            TempRecordFilename = $"record_{id.Ticks}.mp4";
         }
         public void StartRecord()
         {
@@ -22,7 +28,7 @@ namespace CallRecorder.Core
                     () => audioRecorder.Start()
                 );
             }
-            catch(Exception ex) { Utils.Log(ex.Message); }
+            catch(Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
         }
         public void StopRecord()
         {
@@ -47,7 +53,7 @@ namespace CallRecorder.Core
                 proc.Start();
                 while (!proc.HasExited) ;
             }
-            catch(Exception ex){ Utils.Log(ex.Message); }
+            catch(Exception ex){ Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
         }
         public void MergeRecord()
         {
@@ -57,7 +63,7 @@ namespace CallRecorder.Core
                 {
                     StartInfo = new ProcessStartInfo()
                     {
-                        Arguments = $"-i {videoRecorder.TempVideoFilemane} -i {audioRecorder.TempAudioFilename} -c:v copy -c:a aac record.mp4",
+                        Arguments = $"-i {videoRecorder.TempVideoFilemane} -i {audioRecorder.TempAudioFilename} -c:v copy -c:a aac {TempRecordFilename}",
                         FileName = "ffmpeg.exe",
                         WindowStyle = ProcessWindowStyle.Hidden,
                         CreateNoWindow = true,
@@ -68,7 +74,20 @@ namespace CallRecorder.Core
                 proc.Start();
                 while (!proc.HasExited) ;
             }
-            catch (Exception ex) { Utils.Log(ex.Message); }
+            catch (Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
+        }
+        public void DeleteTempFiles()
+        {
+            Utils.Log("Удаление временных файлов...");
+            try
+            {
+                if (File.Exists(audioRecorder.TempMicFilename)) File.Delete(audioRecorder.TempMicFilename);
+                if (File.Exists(audioRecorder.TempSysFilename)) File.Delete(audioRecorder.TempSysFilename);
+                if (File.Exists(audioRecorder.TempAudioFilename)) File.Delete(audioRecorder.TempAudioFilename);
+                if (File.Exists(videoRecorder.TempVideoFilemane)) File.Delete(videoRecorder.TempVideoFilemane);
+                if (File.Exists(TempRecordFilename)) File.Delete(TempRecordFilename);
+            }
+            catch (Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
         }
     }
 }

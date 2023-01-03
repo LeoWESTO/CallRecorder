@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -21,7 +22,7 @@ namespace CallRecorder.Core
                     process.Kill();
                 }
             }
-            catch (Exception ex) { Utils.Log(ex.Message); }
+            catch (Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
         }
         public static void Log(string message)
         {
@@ -42,22 +43,9 @@ namespace CallRecorder.Core
                         }
                         Thread.Sleep(100);
                     }
-                    catch (Exception ex) { Utils.Log(ex.Message); }
+                    catch (Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
                 }
             });
-        }
-        public static void DeleteTempFiles()
-        {
-            Log("Удаление временных файлов...");
-            try
-            {
-                if (File.Exists("mic.wav")) File.Delete("mic.wav");
-                if (File.Exists("sys.wav")) File.Delete("sys.wav");
-                if (File.Exists("audio.wav")) File.Delete("audio.wav");
-                if (File.Exists("video.mp4")) File.Delete("video.mp4");
-                if (File.Exists("record.mp4")) File.Delete("record.mp4");
-            }
-            catch (Exception ex) { Utils.Log(ex.Message); }
         }
         public static void CheckAutorun()
         {
@@ -75,7 +63,7 @@ namespace CallRecorder.Core
                 shortcut.WorkingDirectory = Application.StartupPath;
                 shortcut.Save();
             }
-            catch (Exception ex) { Utils.Log(ex.Message); }
+            catch (Exception ex) { Utils.Log($"{MethodBase.GetCurrentMethod().Name} {ex.Message}"); }
         }
     }
 }
